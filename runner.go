@@ -20,6 +20,7 @@ type Instance struct {
 	Name     string
 	Index    int // 0-based instance index within its process type
 	Port     int
+	Addrs    []string
 	ColorIdx int
 	cmd      *exec.Cmd
 }
@@ -92,6 +93,16 @@ func Run(cfg RunConfig) int {
 		return 1
 	}
 
+	// Pre-flight: verify all ports are available before starting anything.
+	for _, inst := range instances {
+		addrs := resolveAddresses(inst.Port)
+		if len(addrs) == 0 {
+			fmt.Fprintf(os.Stderr, "error: port %d for %q is already in use\n", inst.Port, inst.Name)
+			return 1
+		}
+		inst.Addrs = addrs
+	}
+
 	// exitCode tracks the first non-zero exit (or zero if all succeed).
 	var exitCode int32
 	var exitOnce sync.Once
@@ -116,11 +127,7 @@ func Run(cfg RunConfig) int {
 		}
 		pw.Close() // parent doesn't write
 
-		addrs := resolveAddresses(inst.Port)
-		addrInfo := ""
-		if len(addrs) > 0 {
-			addrInfo = fmt.Sprintf(" (listening on %s)", strings.Join(addrs, ", "))
-		}
+		addrInfo := fmt.Sprintf(" (listening on %s)", strings.Join(inst.Addrs, ", "))
 		out.WriteSystem("overseer", fmt.Sprintf("started %s with pid %d%s", inst.Name, inst.cmd.Process.Pid, addrInfo))
 
 		wg.Add(1)

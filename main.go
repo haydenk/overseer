@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -78,7 +77,7 @@ func cmdStart(args []string) int {
 	procfilePath := fs.String("f", "Procfile", "Procfile path")
 	envFile := fs.String("e", ".env", ".env file path")
 	formation := fs.String("m", "", "process formation, e.g. all=1,web=2")
-	portFlag := fs.String("p", "", "base port (overrides $PORT, default 5000)")
+	portFlag := fs.String("p", "", "base port (overrides $PORT, default 3000)")
 	timeout := fs.Int("t", 5, "graceful shutdown timeout in seconds")
 	colorOutput := fs.Bool("c", true, "enable colored output")
 	noTimestamp := fs.Bool("no-timestamp", false, "disable timestamps in output")
@@ -115,7 +114,7 @@ func cmdStart(args []string) int {
 		return 1
 	}
 
-	basePort := 5000
+	basePort := 3000
 	if p := os.Getenv("PORT"); p != "" {
 		if n, err := strconv.Atoi(p); err == nil {
 			basePort = n
@@ -179,7 +178,7 @@ func cmdRun(args []string) int {
 	}
 
 	// Determine the base port.
-	basePort := 5000
+	basePort := 3000
 	if p := os.Getenv("PORT"); p != "" {
 		if n, err := strconv.Atoi(p); err == nil {
 			basePort = n
@@ -263,14 +262,4 @@ func resolveAddresses(port int) []string {
 	}
 
 	return addrs
-}
-
-// printListenInfo writes available bind addresses for a port to w.
-// Called before spawning a process so operators know where it will bind.
-func printListenInfo(w io.Writer, name string, port int) {
-	addrs := resolveAddresses(port)
-	if len(addrs) == 0 {
-		return
-	}
-	fmt.Fprintf(w, "%-12s will bind on: %s\n", name, strings.Join(addrs, ", "))
 }
