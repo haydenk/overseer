@@ -173,8 +173,8 @@ func TestParseEnvValue_DoubleQuoted(t *testing.T) {
 	}{
 		{`"hello"`, "hello"},
 		{`"hello world"`, "hello world"},
-		{`"hello\nworld"`, "hello\nworld"},   // \n becomes newline
-		{`"hello\\world"`, `hello\world`},    // \\ becomes single backslash
+		{`"hello\nworld"`, "hello\nworld"}, // \n becomes newline
+		{`"hello\\world"`, `hello\world`},  // \\ becomes single backslash
 		{`"line1\nline2\nline3"`, "line1\nline2\nline3"},
 		{`""`, ""},
 	}

@@ -133,9 +133,9 @@ func TestParseFormation_WhitespaceAroundValues(t *testing.T) {
 
 func TestParseFormation_TableDriven(t *testing.T) {
 	tests := []struct {
-		spec         string
-		wantErr      bool
-		wantDefault  int
+		spec          string
+		wantErr       bool
+		wantDefault   int
 		wantFormation map[string]int
 	}{
 		{"all=1,web=2,worker=3", false, 1, map[string]int{"web": 2, "worker": 3}},
