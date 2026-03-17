@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Install tools and verify the Go toolchain is ready"
+set -euo pipefail
+
+echo "→ Installing mise tools..."
+mise install
+
+echo "→ Go toolchain: $(go version)"
+echo "→ Tidying module..."
+go mod tidy
+
+echo "→ Setup complete."

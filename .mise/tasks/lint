@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Run go vet and staticcheck on the module"
+#MISE sources=["**/*.go"]
+set -euo pipefail
+
+echo "→ go vet..."
+go vet ./...
+
+# staticcheck is a Go static analyser; install it if not present.
+if ! command -v staticcheck &>/dev/null; then
+  echo "→ Installing staticcheck..."
+  go install honnef.co/go/tools/cmd/staticcheck@latest
+fi
+
+echo "→ staticcheck..."
+staticcheck ./...
+
+echo "→ Lint clean."

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Build and install overseer to $GOBIN (default: ./bin)"
+#MISE depends=["build"]
+set -euo pipefail
+
+echo "→ Installing overseer to ${GOBIN:-$HOME/go/bin}..."
+go install .
+echo "→ Installed: $(command -v overseer 2>/dev/null || echo "${GOBIN}/overseer")"

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#MISE description="Run overseer start using Procfile.dev (falls back to Procfile)"
+#MISE depends=["build"]
+set -euo pipefail
+
+PROCFILE="Procfile.dev"
+if [[ ! -f "$PROCFILE" ]]; then
+  PROCFILE="Procfile"
+fi
+
+if [[ ! -f "$PROCFILE" ]]; then
+  echo "error: no Procfile or Procfile.dev found" >&2
+  exit 1
+fi
+
+echo "→ Starting dev server with $PROCFILE..."
+exec bin/overseer start -f "$PROCFILE" -c

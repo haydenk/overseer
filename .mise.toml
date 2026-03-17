@@ -1,0 +1,9 @@
+[tools]
+go = "1.26.1"
+
+[env]
+GOBIN = "{{config_root}}/bin"
+CGO_ENABLED = "0"
+
+[settings]
+experimental = true

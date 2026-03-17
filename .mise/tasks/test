@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Run the full test suite with race detection"
+#MISE sources=["**/*.go", "go.mod"]
+set -euo pipefail
+
+echo "→ Running tests (race detector enabled)..."
+go test -race -count=1 -timeout 60s ./...

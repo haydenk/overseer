@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Run fmt + vet + tests (pre-commit quality gate)"
+set -euo pipefail
+
+# fmt must run first so lint and test see formatted source
+mise run fmt
+
+# lint and test can run in parallel after fmt
+mise run lint & mise run test & wait
+
+echo "→ All checks passed."

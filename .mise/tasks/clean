@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Remove build artifacts (bin/) and Go build cache"
+set -euo pipefail
+
+echo "→ Removing bin/..."
+rm -rf bin/
+
+echo "→ Cleaning Go build cache..."
+go clean -cache
+
+echo "→ Clean."

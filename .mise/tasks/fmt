@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Format all Go source files with gofmt"
+#MISE sources=["**/*.go"]
+set -euo pipefail
+
+echo "→ Formatting..."
+gofmt -w .
+echo "→ Done."

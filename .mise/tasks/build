@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Compile overseer to ./bin/overseer"
+#MISE sources=["**/*.go", "go.mod", "go.sum"]
+#MISE outputs=["bin/overseer"]
+set -euo pipefail
+
+mkdir -p bin
+echo "→ Building overseer..."
+go build -o bin/overseer .
+echo "→ Built: $(ls -lh bin/overseer | awk '{print $5, $NF}')"
