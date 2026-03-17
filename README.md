@@ -1,5 +1,10 @@
 # overseer
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/haydenk/overseer.svg)](https://pkg.go.dev/github.com/haydenk/overseer)
+[![Go Report Card](https://goreportcard.com/badge/github.com/haydenk/overseer)](https://goreportcard.com/report/github.com/haydenk/overseer)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![Go Version](https://img.shields.io/badge/go-1.26+-00ADD8?logo=go)
+
 A zero-dependency Go clone of [foreman](https://github.com/ddollar/foreman) — a `Procfile`-based process manager. Overseer reads a `Procfile`, spawns each process, streams prefixed and colored output, and handles graceful shutdown on signals.
 
 ## Features
