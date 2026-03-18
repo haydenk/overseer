@@ -39,12 +39,59 @@ type RunConfig struct {
 
 // Run spawns all process instances and manages their lifecycle.
 func Run(cfg RunConfig) int {
-	var instances []*Instance
-	processIndex := 0
-	maxWidth := len("overseer")
+	instances := buildInstances(cfg)
+	if len(instances) == 0 {
+		fmt.Fprintln(os.Stderr, "no processes to run")
+		return 1
+	}
 
-	for _, e := range cfg.Entries {
-		count := CountFor(cfg.Formation, cfg.DefaultCount, e.Name)
+	if err := checkPorts(instances); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+
+	maxWidth := computeMaxWidth(cfg.Entries, cfg.Formation, cfg.DefaultCount)
+	out := NewWriter(os.Stdout, maxWidth, cfg.NoTimestamp, cfg.ColorOutput)
+
+	var exitCode int32
+	var exitOnce sync.Once
+	done := make(chan struct{})
+	var wg sync.WaitGroup
+
+	for _, inst := range instances {
+		if err := spawnInstance(inst, out, &wg, &exitCode, &exitOnce, done); err != nil {
+			return 1
+		}
+	}
+
+	sigCh := make(chan os.Signal, 8)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP,
+		syscall.SIGUSR1, syscall.SIGUSR2)
+
+	select {
+	case sig := <-sigCh:
+		switch sig {
+		case syscall.SIGUSR1, syscall.SIGUSR2:
+			forwardSignal(instances, sig.(syscall.Signal))
+		default:
+			out.WriteSystem("overseer", fmt.Sprintf("received %s, shutting down", sig))
+		}
+	case <-done:
+		// A process exited; initiate shutdown.
+	}
+
+	signal.Stop(sigCh)
+	shutdown(instances, out, cfg.Timeout)
+
+	wg.Wait()
+	return int(atomic.LoadInt32(&exitCode))
+}
+
+// computeMaxWidth returns the longest label width across all instances.
+func computeMaxWidth(entries []Entry, formation map[string]int, defaultCount int) int {
+	maxWidth := len("overseer")
+	for _, e := range entries {
+		count := CountFor(formation, defaultCount, e.Name)
 		for i := 0; i < count; i++ {
 			label := e.Name
 			if count > 1 {
@@ -54,15 +101,14 @@ func Run(cfg RunConfig) int {
 				maxWidth = len(label)
 			}
 		}
-		processIndex++
 	}
-	if len("overseer") > maxWidth {
-		maxWidth = len("overseer")
-	}
+	return maxWidth
+}
 
-	out := NewWriter(os.Stdout, maxWidth, cfg.NoTimestamp, cfg.ColorOutput)
-
-	processIndex = 0
+// buildInstances creates all Instance values from the run configuration.
+func buildInstances(cfg RunConfig) []*Instance {
+	var instances []*Instance
+	processIndex := 0
 	colorIdx := 0
 	for _, e := range cfg.Entries {
 		count := CountFor(cfg.Formation, cfg.DefaultCount, e.Name)
@@ -78,114 +124,88 @@ func Run(cfg RunConfig) int {
 				Port:     port,
 				ColorIdx: colorIdx,
 			}
-
 			env := buildEnv(cfg.EnvVars, port, label)
-			cmd := buildCmd(e.Command, env)
-			inst.cmd = cmd
+			inst.cmd = buildCmd(e.Command, env)
 			instances = append(instances, inst)
 		}
 		colorIdx++
 		processIndex++
 	}
+	return instances
+}
 
-	if len(instances) == 0 {
-		fmt.Fprintln(os.Stderr, "no processes to run")
-		return 1
-	}
-
-	// Pre-flight: verify all ports are available before starting anything.
+// checkPorts verifies all instance ports are available and populates inst.Addrs.
+func checkPorts(instances []*Instance) error {
 	for _, inst := range instances {
 		addrs := resolveAddresses(inst.Port)
 		if len(addrs) == 0 {
-			fmt.Fprintf(os.Stderr, "error: port %d for %q is already in use\n", inst.Port, inst.Name)
-			return 1
+			return fmt.Errorf("error: port %d for %q is already in use", inst.Port, inst.Name)
 		}
 		inst.Addrs = addrs
 	}
+	return nil
+}
 
-	// exitCode tracks the first non-zero exit (or zero if all succeed).
-	var exitCode int32
-	var exitOnce sync.Once
-	done := make(chan struct{})
-	var wg sync.WaitGroup
-
-	// Start all instances.
-	for _, inst := range instances {
-		pr, pw, err := os.Pipe()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "pipe error: %v\n", err)
-			return 1
-		}
-		inst.cmd.Stdout = pw
-		inst.cmd.Stderr = pw
-
-		if err := inst.cmd.Start(); err != nil {
-			out.WriteSystem("overseer", fmt.Sprintf("failed to start %s: %v", inst.Name, err))
-			pw.Close()
-			pr.Close()
-			continue
-		}
-		pw.Close() // parent doesn't write
-
-		addrInfo := fmt.Sprintf(" (listening on %s)", strings.Join(inst.Addrs, ", "))
-		out.WriteSystem("overseer", fmt.Sprintf("started %s with pid %d%s", inst.Name, inst.cmd.Process.Pid, addrInfo))
-
-		wg.Add(1)
-		go func(inst *Instance, r io.Reader) {
-			defer wg.Done()
-			scanner := bufio.NewScanner(r)
-			for scanner.Scan() {
-				out.WriteLine(inst.ColorIdx, inst.Name, scanner.Text())
-			}
-		}(inst, pr)
-
-		wg.Add(1)
-		go func(inst *Instance) {
-			defer wg.Done()
-			err := inst.cmd.Wait()
-			code := 0
-			if err != nil {
-				if ee, ok := err.(*exec.ExitError); ok {
-					code = ee.ExitCode()
-				} else {
-					code = 1
-				}
-			}
-			exitOnce.Do(func() {
-				atomic.StoreInt32(&exitCode, int32(code))
-			})
-			out.WriteSystem("overseer", fmt.Sprintf("%s exited with status %d", inst.Name, code))
-			select {
-			case <-done:
-			default:
-				close(done)
-			}
-		}(inst)
+// spawnInstance starts a single process and launches its I/O and wait goroutines.
+// A non-nil error indicates a fatal setup failure; a failed Start is logged but not fatal.
+func spawnInstance(inst *Instance, out *Writer, wg *sync.WaitGroup, exitCode *int32, exitOnce *sync.Once, done chan struct{}) error {
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "pipe error: %v\n", err)
+		return err
 	}
+	inst.cmd.Stdout = pw
+	inst.cmd.Stderr = pw
 
-	// Signal handling.
-	sigCh := make(chan os.Signal, 8)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP,
-		syscall.SIGUSR1, syscall.SIGUSR2)
+	if err := inst.cmd.Start(); err != nil {
+		out.WriteSystem("overseer", fmt.Sprintf("failed to start %s: %v", inst.Name, err))
+		pw.Close()
+		pr.Close()
+		return nil
+	}
+	pw.Close() // parent doesn't write
 
+	addrInfo := fmt.Sprintf(" (listening on %s)", strings.Join(inst.Addrs, ", "))
+	out.WriteSystem("overseer", fmt.Sprintf("started %s with pid %d%s", inst.Name, inst.cmd.Process.Pid, addrInfo))
+
+	wg.Add(1)
+	go streamOutput(inst, pr, out, wg)
+
+	wg.Add(1)
+	go watchExit(inst, out, wg, exitCode, exitOnce, done)
+	return nil
+}
+
+// streamOutput copies scanner lines from r to the writer until EOF.
+func streamOutput(inst *Instance, r io.Reader, out *Writer, wg *sync.WaitGroup) {
+	defer wg.Done()
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		out.WriteLine(inst.ColorIdx, inst.Name, scanner.Text())
+	}
+}
+
+// watchExit waits for inst to exit, records its code, and signals done.
+func watchExit(inst *Instance, out *Writer, wg *sync.WaitGroup, exitCode *int32, exitOnce *sync.Once, done chan struct{}) {
+	defer wg.Done()
+	err := inst.cmd.Wait()
+	code := 0
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			code = ee.ExitCode()
+		} else {
+			code = 1
+		}
+	}
+	exitOnce.Do(func() {
+		atomic.StoreInt32(exitCode, int32(code))
+	})
+	out.WriteSystem("overseer", fmt.Sprintf("%s exited with status %d", inst.Name, code))
 	select {
-	case sig := <-sigCh:
-		switch sig {
-		case syscall.SIGUSR1, syscall.SIGUSR2:
-			forwardSignal(instances, sig.(syscall.Signal))
-			// Re-arm signal handling and wait again.
-		default:
-			out.WriteSystem("overseer", fmt.Sprintf("received %s, shutting down", sig))
-		}
 	case <-done:
-		// A process exited; initiate shutdown.
+	default:
+		close(done)
 	}
-
-	signal.Stop(sigCh)
-	shutdown(instances, out, cfg.Timeout)
-
-	wg.Wait()
-	return int(atomic.LoadInt32(&exitCode))
 }
 
 func shutdown(instances []*Instance, out *Writer, timeout int) {
