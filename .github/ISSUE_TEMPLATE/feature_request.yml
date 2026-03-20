@@ -1,0 +1,57 @@
+name: Feature Request
+description: Suggest a new feature or improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to improve Overseer? Great — please share it! For general discussion or questions, use [Discussions](https://github.com/haydenk/overseer/discussions) instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What use case or frustration is this addressing?
+      placeholder: "I find it hard to... / It would be useful if Overseer could..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to see. Be as specific as you can.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of Overseer does this affect?
+      multiple: true
+      options:
+        - Procfile parsing
+        - Process execution / signals
+        - Output / logging
+        - Formation / scaling
+        - Environment (.env) handling
+        - Port assignment
+        - CLI flags
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you've thought about or workarounds you're currently using?
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Examples, reference implementations (e.g. Foreman behaviour), or links.

@@ -1,0 +1,30 @@
+procfile:
+  - changed-files:
+      - any-glob-to-any-file: 'procfile.go'
+
+formation:
+  - changed-files:
+      - any-glob-to-any-file: 'formation.go'
+
+output:
+  - changed-files:
+      - any-glob-to-any-file: 'output.go'
+
+configuration:
+  - changed-files:
+      - any-glob-to-any-file: 'env.go'
+
+ci/cd:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+      - any-glob-to-any-file: '.mise.toml'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file: '*.md'
+      - any-glob-to-any-file: 'docs/**'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: 'go.mod'
+      - any-glob-to-any-file: 'go.sum'

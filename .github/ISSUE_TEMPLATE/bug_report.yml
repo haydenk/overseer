@@ -1,0 +1,96 @@
+name: Bug Report
+description: Something isn't working as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out all relevant sections — the more detail, the faster we can help.
+
+  - type: input
+    id: version
+    attributes:
+      label: Overseer version
+      placeholder: "e.g. 1.0.0  (check the release tag or run overseer --version)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_method
+    attributes:
+      label: Installation method
+      options:
+        - Binary (from GitHub releases)
+        - Built from source
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: OS / Platform
+      placeholder: "e.g. Ubuntu 24.04 LTS x86_64, macOS 15 (Apple Silicon)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: "When I do X, Y happens instead of Z."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `overseer start` with the Procfile below
+        2. ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What should have happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: procfile
+    attributes:
+      label: Procfile
+      description: Paste the Procfile you're using. Remove any sensitive values.
+      render: text
+      placeholder: |
+        web: ./bin/server --port $PORT
+        worker: ./bin/worker
+
+  - type: textarea
+    id: env
+    attributes:
+      label: .env file (if relevant)
+      description: Paste relevant lines from your `.env`. **Remove any secrets or credentials.**
+      render: shell
+      placeholder: |
+        PORT=5000
+        LOG_LEVEL=debug
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output
+      description: Paste the full output from overseer, including any error messages.
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else that might help — flags passed, signal behaviour, etc.
