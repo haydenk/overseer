@@ -64,7 +64,7 @@ jobs:
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3.6.3
 
       - name: Build binary
-        run: mise run build
+        run: mkdir -p dist && go build -o "$OUTPUT" .
 
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
@@ -90,7 +90,9 @@ jobs:
       - name: Extract changelog for ${{ env.RELEASE_TAG }}
         id: changelog
         run: |
-          notes=$(awk -v ver="${{ env.RELEASE_TAG }}" '
+          ver="${{ env.RELEASE_TAG }}"
+          ver="${ver#v}"
+          notes=$(awk -v ver="$ver" '
             /^## \[/ { if (found) exit; if (index($0, "[" ver "]")) found=1; next }
             found { print }
           ' CHANGELOG.md | awk 'NF{found=NR} {lines[NR]=$0} END{for(i=1;i<=found;i++) print lines[i]}')
