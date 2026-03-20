@@ -1,5 +1,7 @@
 # overseer
 
+[![CI](https://github.com/haydenk/overseer/actions/workflows/ci.yml/badge.svg)](https://github.com/haydenk/overseer/actions/workflows/ci.yml)
+[![Release](https://github.com/haydenk/overseer/actions/workflows/release.yml/badge.svg)](https://github.com/haydenk/overseer/actions/workflows/release.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/haydenk/overseer.svg)](https://pkg.go.dev/github.com/haydenk/overseer)
 [![Go Report Card](https://goreportcard.com/badge/github.com/haydenk/overseer)](https://goreportcard.com/report/github.com/haydenk/overseer)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
