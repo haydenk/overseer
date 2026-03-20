@@ -3,7 +3,8 @@ go = "1.26.1"
 
 [env]
 GOBIN = "{{config_root}}/bin"
-CGO_ENABLED = "1"
+CGO_ENABLED = "0"
+MISE_ENV_FILE = ".env"
 
 [settings]
 experimental = true

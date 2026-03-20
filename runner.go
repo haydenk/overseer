@@ -65,15 +65,14 @@ func Run(cfg RunConfig) int {
 	}
 
 	sigCh := make(chan os.Signal, 8)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP,
-		syscall.SIGUSR1, syscall.SIGUSR2)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	registerExtraSignals(sigCh)
 
 	select {
 	case sig := <-sigCh:
-		switch sig {
-		case syscall.SIGUSR1, syscall.SIGUSR2:
-			forwardSignal(instances, sig.(syscall.Signal))
-		default:
+		if isForwardSignal(sig) {
+			doForwardSignal(instances, sig)
+		} else {
 			out.WriteSystem("overseer", fmt.Sprintf("received %s, shutting down", sig))
 		}
 	case <-done:
@@ -212,7 +211,7 @@ func shutdown(instances []*Instance, out *Writer, timeout int) {
 	out.WriteSystem("overseer", "sending SIGTERM to all processes")
 	for _, inst := range instances {
 		if inst.cmd.Process != nil {
-			_ = inst.cmd.Process.Signal(syscall.SIGTERM)
+			terminateProcess(inst.cmd.Process)
 		}
 	}
 
@@ -230,7 +229,7 @@ func shutdown(instances []*Instance, out *Writer, timeout int) {
 			out.WriteSystem("overseer", "timeout reached, sending SIGKILL")
 			for _, inst := range instances {
 				if inst.cmd.Process != nil {
-					_ = inst.cmd.Process.Signal(syscall.SIGKILL)
+					killProcess(inst.cmd.Process)
 				}
 			}
 			return
@@ -245,14 +244,6 @@ func shutdown(instances []*Instance, out *Writer, timeout int) {
 			if allDone {
 				return
 			}
-		}
-	}
-}
-
-func forwardSignal(instances []*Instance, sig syscall.Signal) {
-	for _, inst := range instances {
-		if inst.cmd.Process != nil {
-			_ = syscall.Kill(inst.cmd.Process.Pid, sig)
 		}
 	}
 }
@@ -282,7 +273,7 @@ func buildEnv(envVars map[string]string, port int, label string) []string {
 
 // buildCmd creates an exec.Cmd for the given shell command string.
 func buildCmd(command string, env []string) *exec.Cmd {
-	cmd := exec.Command("sh", "-c", command)
+	cmd := newCmd(command)
 	cmd.Env = env
 	return cmd
 }
