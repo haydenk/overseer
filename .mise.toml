@@ -3,7 +3,7 @@ go = "1.26.1"
 
 [env]
 GOBIN = "{{config_root}}/bin"
-CGO_ENABLED = "0"
+CGO_ENABLED = "1"
 
 [settings]
 experimental = true
