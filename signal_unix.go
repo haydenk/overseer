@@ -40,7 +40,12 @@ func killProcess(p *os.Process) {
 }
 
 func newCmd(command string) *exec.Cmd {
-	cmd := exec.Command("sh", "-c", command)
+	// Use "exec" to replace the shell with the actual process so that:
+	//   1. The pid overseer tracks IS the real process (correct exit code).
+	//   2. SIGTERM is received by the process itself, not the shell (which would
+	//      exit with -1 immediately, before the child finishes graceful shutdown).
+	// For simple commands (no pipelines) the shell is fully replaced by the process.
+	cmd := exec.Command("sh", "-c", "exec "+command)
 	// Put each child in its own process group so signals reach the whole tree.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	return cmd
