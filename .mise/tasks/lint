@@ -7,12 +7,19 @@ echo "→ go vet..."
 go vet ./...
 
 # staticcheck is a Go static analyser; install it if not present.
-if ! command -v staticcheck &>/dev/null; then
+GOBIN="$(go env GOBIN)"
+GOBIN="${GOBIN:-$(go env GOPATH)/bin}"
+STATICCHECK="$GOBIN/staticcheck"
+if ! command -v staticcheck &>/dev/null && [[ ! -x "$STATICCHECK" ]]; then
   echo "→ Installing staticcheck..."
   go install honnef.co/go/tools/cmd/staticcheck@latest
 fi
 
 echo "→ staticcheck..."
-staticcheck ./...
+if command -v staticcheck &>/dev/null; then
+  staticcheck ./...
+else
+  "$STATICCHECK" ./...
+fi
 
 echo "→ Lint clean."
