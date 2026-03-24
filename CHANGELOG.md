@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4] - 2026-03-24
+
+### Fixed
+
+- Signal entire process group on Unix shutdown so grandchildren (e.g. processes spawned by a shell wrapper) also receive `SIGTERM`/`SIGKILL`
+- Use `exec` prefix in shell command so the tracked PID is the real process, not the intermediate shell, fixing exit codes and signal delivery
+
 ## [0.0.3] - 2026-03-20
 
 ### Fixed
@@ -45,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub issue templates (bug report, feature request, question) and pull request template
 - Zero external dependencies — pure Go standard library
 
+[0.0.4]: https://github.com/haydenk/overseer/releases/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/haydenk/overseer/releases/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/haydenk/overseer/releases/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/haydenk/overseer/releases/tag/v0.0.1
