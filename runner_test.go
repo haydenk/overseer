@@ -175,8 +175,8 @@ func TestBuildCmd_SetsShellMinusCArgs(t *testing.T) {
 	if cmd.Args[1] != "-c" {
 		t.Errorf("Args[1] = %q, want %q", cmd.Args[1], "-c")
 	}
-	if cmd.Args[2] != "echo hello" {
-		t.Errorf("Args[2] = %q, want %q", cmd.Args[2], "echo hello")
+	if cmd.Args[2] != "exec echo hello" {
+		t.Errorf("Args[2] = %q, want %q", cmd.Args[2], "exec echo hello")
 	}
 }
 
@@ -205,8 +205,8 @@ func TestBuildCmd_ComplexShellCommandPreserved(t *testing.T) {
 	complex := "FOO=bar ./server --port $PORT 2>&1 | tee /tmp/log"
 	cmd := buildCmd(complex, nil)
 
-	if cmd.Args[2] != complex {
-		t.Errorf("Args[2] = %q, want %q", cmd.Args[2], complex)
+	if cmd.Args[2] != "exec "+complex {
+		t.Errorf("Args[2] = %q, want %q", cmd.Args[2], "exec "+complex)
 	}
 }
 
